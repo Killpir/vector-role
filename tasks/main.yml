@@ -1,0 +1,29 @@
+---
+- name: Download vector rpm
+  ansible.builtin.get_url:
+    url: "https://packages.timber.io/vector/{{ vector_version_rpm }}/vector-{{ vector_version_rpm }}-1.x86_64.rpm"
+    dest: "/tmp/vector.rpm"
+  when: ansible_facts['pkg_mgr'] in ['yum', 'dnf']
+
+- name: Install vector (rpm based)
+  become: true
+  ansible.builtin.package:
+    name: "/tmp/vector.rpm"
+    state: present
+  when: ansible_facts['pkg_mgr'] in ['yum', 'dnf']
+  notify: Restart vector
+
+- name: Install vector (apt)
+  become: true
+  ansible.builtin.apt:
+    deb: "https://packages.timber.io/vector/{{ vector_version_deb }}/vector_{{ vector_version_deb }}-1_amd64.deb"
+  when: ansible_facts['pkg_mgr'] == 'apt'
+  notify: Restart vector
+
+- name: Deploy vector config
+  become: true
+  ansible.builtin.template:
+    src: vector.j2
+    dest: /etc/vector/vector.yaml
+    mode: "0644"
+  notify: Restart vector
